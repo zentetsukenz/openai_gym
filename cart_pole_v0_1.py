@@ -10,7 +10,7 @@ def build_agent(
         n_state,
         n_action,
         learning_rate=0.001,
-        discount_rate=0.95,
+        discount_rate=0.999,
         exploration_rate=1.,
         exploration_decay_rate=0.995,
         exploration_min=0.01):
@@ -46,28 +46,29 @@ def act(agent, model, state):
         return r.randrange(agent['n_action'])
     return np.argmax(model.predict(state)[0])
 
-def replay(agent, model, memory, batch_size):
+def replay(agent, model, target_model, memory, batch_size):
     minibatch = r.sample(memory, batch_size)
     for state, action, reward, next_state, done in minibatch:
-        target = model.predict(state)
+        target = target_model.predict(state)
         if done:
             target[0][action] = reward
         else:
-            target[0][action] = reward + agent['discount_rate'] * np.amax(model.predict(next_state)[0])
+            target[0][action] = reward + agent['discount_rate'] * np.amax(target_model.predict(next_state)[0])
         model.fit(state, target, epochs=1, verbose=0)
     if agent['exploration_rate'] > agent['exploration_min']:
         agent['exploration_rate'] *= agent['exploration_decay_rate']
-    return agent, model
+    return agent, model, target_model
 
 n_episode = 5000
 max_step = 200
-replay_batch_size = 64
+replay_batch_size = 32
 
 env = gym.make('CartPole-v0')
 
 agent = build_agent(env.observation_space.shape[0], env.action_space.n)
 memory = build_memory(maxlen=2000)
 model = build_model(agent)
+target_model = build_model(agent)
 
 for i_episode in range(n_episode):
     state = env.reset()
@@ -81,6 +82,12 @@ for i_episode in range(n_episode):
         next_state, reward, done, _info = env.step(action)
         next_state = np.reshape(next_state, (1, agent['n_state']))
 
+        if done:
+            if t < 195:
+                reward = -t
+            else:
+                reward = t
+
         memory = remember(memory, state, action, reward, next_state, done)
 
         state = next_state
@@ -90,4 +97,6 @@ for i_episode in range(n_episode):
             break
 
     if len(memory) > replay_batch_size:
-        agent, model = replay(agent, model, memory, replay_batch_size)
+        agent, model, target_model = replay(agent, model, target_model, memory, replay_batch_size)
+
+    target_model.set_weights(model.get_weights())
