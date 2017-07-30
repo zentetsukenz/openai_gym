@@ -53,7 +53,8 @@ def replay(agent, model, target_model, memory, batch_size):
         if done:
             target[0][action] = reward
         else:
-            target[0][action] = reward + agent['discount_rate'] * np.amax(target_model.predict(next_state)[0])
+            action_to_use = np.argmax(model.predict(next_state)[0])
+            target[0][action] = reward + agent['discount_rate'] * target_model.predict(next_state)[0][action_to_use]
         model.fit(state, target, epochs=1, verbose=0)
     if agent['exploration_rate'] > agent['exploration_min']:
         agent['exploration_rate'] *= agent['exploration_decay_rate']
@@ -76,7 +77,7 @@ for i_episode in range(n_episode):
     state = np.reshape(state, (1, agent['n_state']))
 
     for t in range(max_step):
-        # env.render()
+        env.render()
 
         action = act(agent, model, state)
 
@@ -94,5 +95,5 @@ for i_episode in range(n_episode):
     if len(memory) > replay_batch_size:
         agent, model, target_model = replay(agent, model, target_model, memory, replay_batch_size)
 
-    if i_episode % 10 == 0:
+    if i_episode % 30 == 0:
         target_model.set_weights(model.get_weights())
