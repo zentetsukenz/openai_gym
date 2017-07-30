@@ -2,6 +2,7 @@ import random as r
 import collections as cl
 import numpy as np
 import gym
+from gym import wrappers
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -29,9 +30,8 @@ def build_memory(maxlen=2000):
 
 def build_model(agent, loss_function='mse'):
     model = Sequential()
-    model.add(Dense(48, input_dim=agent['n_state'], activation='relu'))
-    model.add(Dense(48, activation='relu'))
-    model.add(Dense(24, activation='relu'))
+    model.add(Dense(16, input_dim=agent['n_state'], activation='relu'))
+    model.add(Dense(8, activation='relu'))
     model.add(Dense(agent['n_action'], activation='linear'))
     model.compile(loss=loss_function, optimizer=Adam(lr=agent['learning_rate']))
     return model
@@ -64,6 +64,7 @@ max_step = 200
 replay_batch_size = 32
 
 env = gym.make('CartPole-v0')
+env = wrappers.Monitor(env, './cartpole-experiment-1')
 
 agent = build_agent(env.observation_space.shape[0], env.action_space.n)
 memory = build_memory(maxlen=2000)
@@ -75,18 +76,12 @@ for i_episode in range(n_episode):
     state = np.reshape(state, (1, agent['n_state']))
 
     for t in range(max_step):
-        env.render()
+        # env.render()
 
         action = act(agent, model, state)
 
         next_state, reward, done, _info = env.step(action)
         next_state = np.reshape(next_state, (1, agent['n_state']))
-
-        if done:
-            if t < 195:
-                reward = -t
-            else:
-                reward = t
 
         memory = remember(memory, state, action, reward, next_state, done)
 
@@ -99,4 +94,5 @@ for i_episode in range(n_episode):
     if len(memory) > replay_batch_size:
         agent, model, target_model = replay(agent, model, target_model, memory, replay_batch_size)
 
-    target_model.set_weights(model.get_weights())
+    if i_episode % 10 == 0:
+        target_model.set_weights(model.get_weights())
