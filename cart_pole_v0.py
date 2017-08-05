@@ -1,113 +1,37 @@
-import pandas as pd
 import numpy as np
 import gym
+import learning.ddqn as learner
 from gym import wrappers
 
-def build_state(observation, feature_bins):
-    return_val = ""
-    for i in range(len(feature_bins)):
-        return_val = return_val + str(np.digitize([observation[i]], feature_bins[i])[0])
-    return int(return_val)
-
-def build_feature_bins(lows, highs, num_bin):
-    return np.array([
-        pd.cut([lows[0], highs[0]], bins=num_bin, retbins=True)[1][1:-1],
-        pd.cut([lows[1], highs[1]], bins=num_bin, retbins=True)[1][1:-1],
-        pd.cut([lows[2], highs[2]], bins=num_bin, retbins=True)[1][1:-1],
-        pd.cut([lows[3], highs[3]], bins=num_bin, retbins=True)[1][1:-1],
-    ])
-
-def update_q_table(
-        q_table,
-        state,
-        action,
-        state_prime,
-        action_prime,
-        reward,
-        learning_rate=0.2,
-        discount_rate=0.9):
-    q_table[state, action] = \
-            (1 - learning_rate) * q_table[state, action] \
-            + learning_rate \
-            * (reward + discount_rate * q_table[state_prime, action_prime])
-    return q_table
-
-def select_action(
-        q_table,
-        state,
-        num_action,
-        exploration_rate=0.5,
-        exploration_rate_decay=0.99):
-    if (1 - exploration_rate) <= np.random.uniform(0, 1):
-        return np.random.randint(0, num_action), exploration_rate * exploration_rate_decay
-    else:
-        return q_table[state].argsort()[-1], exploration_rate * exploration_rate_decay
+n_episode = 5000
+max_step = 200
+replay_batch_size = 32
 
 env = gym.make('CartPole-v0')
-env = wrappers.Monitor(env, './cartpole-experiment')
+env = wrappers.Monitor(env, './cartpole-experiment-1')
 
-num_epoch = 5000
-num_feature = env.observation_space.shape[0]
-num_action = env.action_space.n
-num_bin = 10
+agent  = learner.build_agent(env)
+memory = learner.build_memory(maxlen=2000)
+model  = learner.build_model(agent)
 
-learning_rate = 0.3
-discount_rate = 1
-exploration_rate = 1
-exploration_rate_decay = 0.999
+for i_episode in range(n_episode):
+    state = learner.build_state(agent, env.reset())
 
-feature_bins = build_feature_bins(
-    env.observation_space.low,
-    env.observation_space.high,
-    num_bin
-)
-
-q_table = np.zeros((num_bin ** num_feature, num_action))
-
-for i_episode in range(num_epoch):
-    observation = env.reset()
-
-    for t in range(200):
+    for t in range(max_step):
         env.render()
 
-        state = build_state(observation, feature_bins)
-        action, exploration_rate = select_action(q_table,
-                state,
-                num_action,
-                exploration_rate=exploration_rate,
-                exploration_rate_decay=exploration_rate_decay)
+        action = learner.act(agent, model, state)
 
-        observation_prime, reward, done, info = env.step(action)
+        next_state, reward, done, _info = env.step(action)
+        next_state = learner.build_state(agent, next_state)
 
-        state_prime = build_state(observation_prime, feature_bins)
-        action_prime, exploration_rate = select_action(
-                q_table,
-                state_prime,
-                num_action,
-                exploration_rate=exploration_rate,
-                exploration_rate_decay=exploration_rate_decay)
+        memory = learner.remember(memory, state, action, reward, next_state, done)
+
+        state = next_state
+
+        agent, model = learner.replay(agent, model, memory, replay_batch_size)
+        agent, model = learner.update_target(agent, model)
 
         if done:
-            if t < 195:
-                reward = -100000
-            else:
-                reward = 1000
-        else:
-            reward += t
-
-        q_table = update_q_table(
-            q_table,
-            state,
-            action,
-            state_prime,
-            action_prime,
-            reward,
-            learning_rate=learning_rate,
-            discount_rate=discount_rate)
-
-        if done:
+            print("Done episode {}, t = {}".format(i_episode + 1, t + 1))
             break
-
-        observation = observation_prime
-
-    print("Done episode = {}, t = {}".format(i_episode, t + 1))
