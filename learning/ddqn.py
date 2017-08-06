@@ -60,7 +60,7 @@ def replay(agent, model, memory, batch_size):
         return agent, model, memory
 
     if len(memory) <= batch_size:
-        return agent, model
+        return agent, model, memory
 
     online_model = model['online']
     target_model = model['target']
