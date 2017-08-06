@@ -55,14 +55,14 @@ def build_model(agent, loss_function='mse'):
     return {'online': __build_model(agent), 'target': __build_model(agent)}
 
 def replay(agent, model, memory, batch_size):
+    if len(memory) <= batch_size:
+        return agent, model, memory
+
     if agent['count_until_model_replay'] < agent['model_replay_rate'] * 100000:
         agent['count_until_model_replay'] += 1
         return agent, model, memory
-    else:
-        agent['count_until_model_replay'] = 0
 
-    if len(memory) <= batch_size:
-        return agent, model, memory
+    agent['count_until_model_replay'] = 0
 
     online_model = model['online']
     target_model = model['target']
@@ -97,7 +97,7 @@ def update_target(agent, model):
 
     target_model.set_weights(online_model.get_weights())
 
-    return {'online': online_model, 'target': target_model}
+    return agent, {'online': online_model, 'target': target_model}
 
 def __build_model(agent, loss_function='mse'):
     model = Sequential()
