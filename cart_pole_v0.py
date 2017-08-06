@@ -29,7 +29,7 @@ for i_episode in range(n_episode):
 
         state = next_state
 
-        agent, model = learner.replay(agent, model, memory, replay_batch_size)
+        agent, model, memory = learner.replay(agent, model, memory, replay_batch_size)
         agent, model = learner.update_target(agent, model)
 
         if done:

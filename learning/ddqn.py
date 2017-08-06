@@ -82,7 +82,7 @@ def replay(agent, model, memory, batch_size):
     if agent['exploration_rate'] > agent['exploration_min']:
         agent['exploration_rate'] *= agent['exploration_decay_rate']
 
-    return agent, {'online': online_model, 'target': target_model}
+    return agent, {'online': online_model, 'target': target_model}, memory
 
 def update_target(agent, model):
     if agent['count_until_model_update'] < agent['model_update_rate'] * 100000:
