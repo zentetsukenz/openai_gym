@@ -58,6 +58,8 @@ def replay(agent, model, memory, batch_size):
     if agent['count_until_model_replay'] < agent['model_replay_rate'] * 100000:
         agent['count_until_model_replay'] += 1
         return agent, model, memory
+    else:
+        agent['count_until_model_replay'] = 0
 
     if len(memory) <= batch_size:
         return agent, model, memory
