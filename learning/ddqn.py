@@ -57,7 +57,7 @@ def build_model(agent, loss_function='mse'):
 def replay(agent, model, memory, batch_size):
     if agent['count_until_model_replay'] < agent['model_replay_rate'] * 100000:
         agent['count_until_model_replay'] += 1
-        return agent, model
+        return agent, model, memory
 
     if len(memory) <= batch_size:
         return agent, model
