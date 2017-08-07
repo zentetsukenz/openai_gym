@@ -1,4 +1,3 @@
-import numpy as np
 import gym
 import learning.ddqn as learner
 from gym import wrappers
