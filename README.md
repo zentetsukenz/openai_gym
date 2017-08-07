@@ -12,11 +12,11 @@ start a machine learning based on what is used in the problem file.
 
 ### Prerequisites
 
-Python. I prefer using `pyenv` as an environment control because of its simplicity.  
-Tensorflow. Please follow tensorflow installation guide.
-Keras. Please also follow Keras installation guide but basically, `pip install keras` should be enough with Tensorflow as a backend.  
-Numpy. Lovely math library.  
-Pandas. Build on top of Numpy, this library provide a high level of using Numpy.
+- Python. I prefer using `pyenv` as an environment control because of its simplicity.  
+- Tensorflow. Please follow tensorflow installation guide.
+- Keras. Please also follow Keras installation guide but basically, `pip install keras` should be enough with Tensorflow as a backend.  
+- Numpy. Lovely math library.  
+- Pandas. Build on top of Numpy, this library provide a high level of using Numpy.
 
 ## Contributing
 
